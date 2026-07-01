@@ -135,3 +135,24 @@ def test_request_maps_401_to_helpful_message(mock_open_url):
         client.request("GET", "policy/urllist")
     assert module.fail_kwargs["status_code"] == 401
     assert "Authentication failed" in module.fail_kwargs["msg"]
+
+
+# --- find_record helper ---------------------------------------------------
+
+from ansible_collections.mlowcher61.netskope.plugins.module_utils.netskope import (
+    find_record,
+)
+
+
+def test_find_record_returns_first_match():
+    records = [{"id": 1, "name": "a"}, {"id": 2, "name": "b"}]
+    assert find_record(records, lambda r: r.get("name") == "b") == {"id": 2, "name": "b"}
+
+
+def test_find_record_returns_none_when_absent():
+    records = [{"id": 1}]
+    assert find_record(records, lambda r: r.get("id") == 99) is None
+
+
+def test_find_record_empty_list_returns_none():
+    assert find_record([], lambda r: True) is None
