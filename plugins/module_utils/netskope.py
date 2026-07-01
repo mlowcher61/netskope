@@ -160,6 +160,30 @@ class NetskopeClient:
             offset += limit
         return results
 
+    def get_scim_paginated(self, path, params=None, count=DEFAULT_PAGE_LIMIT):
+        """Fetch every page of a SCIM list endpoint.
+
+        SCIM uses 1-based ``startIndex``/``count`` paging and a ``Resources``
+        envelope, which is different from the limit/offset scheme used elsewhere.
+        """
+        params = dict(params or {})
+        params["count"] = count
+        start = int(params.get("startIndex") or 1)
+
+        results = []
+        while True:
+            params["startIndex"] = start
+            payload = self.request("GET", path, params=params)
+            page = payload.get("Resources", []) if isinstance(payload, dict) else []
+            results.extend(page)
+            total = payload.get("totalResults") if isinstance(payload, dict) else None
+            if len(page) < count:
+                break
+            start += count
+            if total is not None and start > total:
+                break
+        return results
+
     @staticmethod
     def _parse_body(raw):
         if not raw:
