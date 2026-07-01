@@ -1,0 +1,7 @@
+---
+collections:
+  # Install the collection from source. Once published to Automation Hub or
+  # Galaxy, replace this with `- name: mlowcher61.netskope`.
+  - name: https://github.com/mlowcher61/netskope.git
+    type: git
+    version: main

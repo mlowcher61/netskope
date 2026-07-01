@@ -1,0 +1,80 @@
+---
+# Config-as-code entry point: configure Ansible Automation Platform to use the
+# mlowcher61.netskope collection.
+#
+# Creates:
+#   * the "Netskope API Token" custom credential type   (ansible.controller)
+#   * an execution environment referencing your image    (ansible.controller)
+#   * (optional) a demo project + job template           (ansible.controller)
+#
+# Organizations are managed with ansible.platform (the AAP gateway collection);
+# controller content types (credential types, EEs, projects, templates) are only
+# provided by ansible.controller, so they are used here.
+#
+# Usage:
+#   ansible-galaxy collection install ansible.platform ansible.controller
+#   export CONTROLLER_HOST=... CONTROLLER_USERNAME=... CONTROLLER_PASSWORD=...
+#   ansible-playbook -i inventory.ini configure_aap.yml
+- name: Configure AAP for the Netskope collection
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/aap_config.yml
+    - credential_types/netskope_api_token.yml
+  module_defaults:
+    group/ansible.controller.controller:
+      controller_host: "{{ controller_host }}"
+      controller_username: "{{ controller_username }}"
+      controller_password: "{{ controller_password }}"
+      controller_oauthtoken: "{{ controller_oauthtoken }}"
+      validate_certs: "{{ controller_validate_certs }}"
+  tasks:
+    - name: Ensure the organization exists
+      ansible.platform.organization:
+        name: "{{ netskope_organization }}"
+        state: present
+
+    - name: Ensure the Netskope custom credential type exists
+      ansible.controller.credential_type:
+        name: "{{ item.name }}"
+        description: "{{ item.description }}"
+        kind: "{{ item.kind }}"
+        inputs: "{{ item.inputs }}"
+        injectors: "{{ item.injectors }}"
+        state: present
+      loop: "{{ netskope_credential_types }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Ensure the Netskope execution environment is registered
+      ansible.controller.execution_environment:
+        name: "{{ netskope_ee_name }}"
+        image: "{{ netskope_ee_image }}"
+        organization: "{{ netskope_organization }}"
+        state: present
+
+    - name: Configure the demo project and job template
+      when: netskope_create_demo | bool
+      block:
+        - name: Ensure the demo project exists
+          ansible.controller.project:
+            name: "{{ netskope_project_name }}"
+            organization: "{{ netskope_organization }}"
+            scm_type: git
+            scm_url: "{{ netskope_project_scm_url }}"
+            scm_branch: "{{ netskope_project_scm_branch }}"
+            default_environment: "{{ netskope_ee_name }}"
+            state: present
+
+        - name: Ensure the demo job template exists
+          ansible.controller.job_template:
+            name: "{{ netskope_job_template_name }}"
+            organization: "{{ netskope_organization }}"
+            project: "{{ netskope_project_name }}"
+            playbook: "{{ netskope_demo_playbook }}"
+            execution_environment: "{{ netskope_ee_name }}"
+            # Attach the custom credential so the token is injected at run time.
+            credentials:
+              - "{{ netskope_credential_types[0].name }}"
+            ask_credential_on_launch: true
+            state: present

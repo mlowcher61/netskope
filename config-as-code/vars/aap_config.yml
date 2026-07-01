@@ -1,0 +1,33 @@
+---
+# Edit these values for your environment, then run configure_aap.yml.
+#
+# Controller connection: supply these here, or (preferred) export them as
+# environment variables so no secrets live in this file:
+#   export CONTROLLER_HOST=https://aap.example.com
+#   export CONTROLLER_USERNAME=admin
+#   export CONTROLLER_PASSWORD=...            # or CONTROLLER_OAUTH_TOKEN
+#   export CONTROLLER_VERIFY_SSL=true
+controller_host: "{{ lookup('env', 'CONTROLLER_HOST') }}"
+controller_username: "{{ lookup('env', 'CONTROLLER_USERNAME') | default(omit, true) }}"
+controller_password: "{{ lookup('env', 'CONTROLLER_PASSWORD') | default(omit, true) }}"
+controller_oauthtoken: "{{ lookup('env', 'CONTROLLER_OAUTH_TOKEN') | default(omit, true) }}"
+controller_validate_certs: "{{ lookup('env', 'CONTROLLER_VERIFY_SSL') | default('true', true) | bool }}"
+
+# Organization to create/use for the demo resources.
+netskope_organization: Default
+
+# Execution environment image that bundles this collection
+# (built from execution-environment/execution-environment.yml and pushed to a
+# registry your controller can reach).
+netskope_ee_name: Netskope EE
+netskope_ee_image: quay.io/mlowcher61/netskope-ee:latest
+
+# Optional demo project + job template. Set to false to skip and only create
+# the credential type + execution environment.
+netskope_create_demo: true
+netskope_project_name: Netskope Examples
+netskope_project_scm_url: https://github.com/mlowcher61/netskope.git
+netskope_project_scm_branch: main
+netskope_job_template_name: Netskope - List URL Lists
+# A playbook path inside the SCM project above.
+netskope_demo_playbook: examples/list_urllists.yml

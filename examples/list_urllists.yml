@@ -1,0 +1,18 @@
+---
+# Example playbook: list Netskope URL lists.
+#
+# In AAP, attach the "Netskope API Token" custom credential to the job template
+# and the tenant URL + token arrive as environment variables automatically — no
+# vars needed here. Outside AAP, export NETSKOPE_TENANT_URL / NETSKOPE_API_TOKEN
+# or pass a `provider` dict.
+- name: List Netskope URL lists
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Retrieve all URL lists
+      mlowcher61.netskope.netskope_urllist_info:
+      register: netskope_urllists
+
+    - name: Show the URL list names
+      ansible.builtin.debug:
+        msg: "{{ netskope_urllists.urllists | map(attribute='name') | list }}"

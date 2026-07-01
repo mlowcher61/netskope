@@ -1,0 +1,27 @@
+---
+# ansible-builder v3 definition for an execution environment that bundles the
+# mlowcher61.netskope collection.
+#
+# Build:
+#   podman login registry.redhat.io           # base image is subscription-gated
+#   ansible-builder build \
+#     --file execution-environment.yml \
+#     --tag quay.io/mlowcher61/netskope-ee:latest \
+#     --container-runtime podman
+#   podman push quay.io/mlowcher61/netskope-ee:latest
+#
+# The collection has no third-party Python dependencies, so nothing extra is
+# installed beyond the collection itself.
+version: 3
+
+images:
+  base_image:
+    # Red Hat supported minimal EE. Swap for quay.io/ansible/awx-ee:latest if you
+    # do not have a Red Hat subscription.
+    name: registry.redhat.io/ansible-automation-platform-25/ee-minimal-rhel9:latest
+
+dependencies:
+  galaxy: requirements.yml
+
+options:
+  package_manager_path: /usr/bin/microdnf

@@ -1,0 +1,31 @@
+---
+namespace: mlowcher61
+name: netskope
+version: 0.1.0
+readme: README.md
+authors:
+  - mlowcher61 <mlowcher@hotmail.com>
+description: >-
+  Ansible content for the Netskope SSE / cloud security platform (REST API v2).
+  Read-only info modules for URL lists, alerts/events, SCIM users and groups,
+  and Private Access publishers.
+license:
+  - GPL-3.0-or-later
+tags:
+  - security
+  - networking
+  - netskope
+  - sse
+  - sase
+  - cloud
+dependencies: {}
+repository: https://github.com/mlowcher61/netskope
+documentation: https://github.com/mlowcher61/netskope/blob/main/README.md
+homepage: https://github.com/mlowcher61/netskope
+issues: https://github.com/mlowcher61/netskope/issues
+build_ignore:
+  - .github
+  - docs/superpowers
+  - execution-environment
+  - config-as-code
+  - '*.tar.gz'

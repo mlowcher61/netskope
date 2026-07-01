@@ -1,0 +1,36 @@
+---
+# Custom credential type definition for the Netskope REST API v2 token.
+#
+# This is the recommended way to supply Netskope credentials in Ansible
+# Automation Platform: the token is stored as a secret credential and injected
+# into the job as environment variables at run time. It is never written to a
+# playbook, a vault file, or the job's extra_vars.
+#
+# The `!unsafe` tags stop Ansible (the config-as-code run) from templating the
+# `{{ tenant_url }}` / `{{ api_token }}` expressions, so the literal templates
+# are stored in the controller and evaluated by AAP when a job runs.
+
+netskope_credential_types:
+  - name: Netskope API Token
+    description: >-
+      Netskope REST API v2 tenant URL and token, injected as environment
+      variables for the mlowcher61.netskope collection.
+    kind: cloud
+    inputs:
+      fields:
+        - id: tenant_url
+          type: string
+          label: Netskope Tenant URL
+          help_text: The tenant base URL, for example https://acme.goskope.com
+        - id: api_token
+          type: string
+          label: Netskope API Token
+          secret: true
+          help_text: A Netskope REST API v2 token scoped to this tenant.
+      required:
+        - tenant_url
+        - api_token
+    injectors:
+      env:
+        NETSKOPE_TENANT_URL: !unsafe "{{ tenant_url }}"
+        NETSKOPE_API_TOKEN: !unsafe "{{ api_token }}"
