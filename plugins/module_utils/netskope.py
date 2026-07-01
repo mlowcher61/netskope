@@ -29,6 +29,18 @@ DEFAULT_TIMEOUT = 30
 MAX_RATE_LIMIT_RETRIES = 3
 
 
+def find_record(records, match):
+    """Return the first record for which ``match(record)`` is truthy, else None.
+
+    A small shared helper so every module resolves "does this resource already
+    exist?" the same way against a list fetched from the API.
+    """
+    for record in records:
+        if match(record):
+            return record
+    return None
+
+
 def netskope_argument_spec():
     """Return the argument spec shared by every module in this collection.
 
