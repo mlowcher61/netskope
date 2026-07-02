@@ -5,11 +5,13 @@ security platform, built for **Ansible Automation Platform (AAP)**. It wraps the
 Netskope **REST API v2** (`https://<tenant>.goskope.com/api/v2/`, bearer token in
 the `Netskope-API-Token` header).
 
-Netskope has no official Ansible collection today; this fills that gap starting
-with read-only *info* modules.
+Netskope has no official Ansible collection today; this fills that gap with
+read-only *info* modules plus modules that manage URL list entries and SCIM
+groups.
 
-> **Release 0.1.0** — Tier 1, read-only modules only. State-changing modules are
-> planned for later releases (see [Roadmap](#roadmap)).
+> **Release 0.2.0** — adds the first state-changing modules
+> (`netskope_urllist`, `netskope_scim_group`), with full `--check` and `--diff`
+> support. More are planned (see [Roadmap](#roadmap)).
 
 ## Requirements
 
@@ -26,7 +28,7 @@ ansible-galaxy collection install git+https://github.com/mlowcher61/netskope.git
 
 # ...or build and install locally
 ansible-galaxy collection build
-ansible-galaxy collection install mlowcher61-netskope-0.1.0.tar.gz
+ansible-galaxy collection install mlowcher61-netskope-0.2.0.tar.gz
 ```
 
 ## Authentication
@@ -69,12 +71,34 @@ or `export NETSKOPE_TENANT_URL=... NETSKOPE_API_TOKEN=...` and pass nothing.
 
 ## Modules
 
-| Module | Endpoint | Description | Status |
+### Info (read-only)
+
+| Module | Endpoint | Description | Since |
 |---|---|---|---|
-| `netskope_urllist_info` | `GET /policy/urllist` | URL lists, with client-side name/id filtering and field projection | ✅ 0.1.0 |
-| `netskope_alert_info` | alerts / events | DLP, malware, policy alerts | 🔜 0.1.0 |
-| `netskope_scim_info` | SCIM users / groups | List SCIM users and groups | 🔜 0.1.0 |
-| `netskope_publisher_info` | Private Access publishers | Publishers + health status | 🔜 0.1.0 |
+| `netskope_urllist_info` | `GET /policy/urllist` | URL lists, with client-side name/id filtering and field projection | 0.1.0 |
+| `netskope_alert_info` | alerts / events | DLP, malware, policy alerts | 0.1.0 |
+| `netskope_scim_info` | SCIM users / groups | List SCIM users and groups | 0.1.0 |
+| `netskope_publisher_info` | Private Access publishers | Publishers + health status | 0.1.0 |
+
+### Management (state-changing)
+
+| Module | Endpoint | Description | Since |
+|---|---|---|---|
+| `netskope_urllist` | `PUT /policy/urllist/{id}` | Add/remove/reconcile URL entries on an **existing** list (the API cannot create lists) | 0.2.0 |
+| `netskope_scim_group` | SCIM `/Groups` | Create/delete a SCIM group and manage its membership | 0.2.0 |
+
+Both management modules support **check mode** (`--check` predicts `changed`
+without writing) and **diff mode** (`--diff` shows before/after). They share
+one idempotency model:
+
+- `state: present` (default) ensures the thing the module owns exists /
+  contains what you listed; `state: absent` removes it.
+- `purge: true` reconciles exactly — anything you did *not* list is removed.
+  With the default `purge: false`, existing extras are left alone.
+- One deliberate difference: a URL list itself cannot be created or deleted via
+  the API, so in `netskope_urllist` `state: absent` removes the supplied
+  *entries* from the list. A SCIM group *is* deletable, so in
+  `netskope_scim_group` `state: absent` deletes the *group*.
 
 See each module's built-in docs for full options and return values:
 
@@ -82,7 +106,9 @@ See each module's built-in docs for full options and return values:
 ansible-doc mlowcher61.netskope.netskope_urllist_info
 ```
 
-## Example
+## Examples
+
+Query a URL list:
 
 ```yaml
 - name: Find a specific URL list, returning only id and name
@@ -95,6 +121,41 @@ ansible-doc mlowcher61.netskope.netskope_urllist_info
 
 - ansible.builtin.debug:
     var: allowlist.urllists
+```
+
+Manage its entries (run with `--check --diff` first to preview):
+
+```yaml
+- name: Ensure these URLs are on the allowlist (leaves other entries alone)
+  mlowcher61.netskope.netskope_urllist:
+    name: Corporate-Allowlist
+    urls:
+      - example.com
+      - partner.example.org
+
+- name: Make the allowlist contain exactly this set (removes anything else)
+  mlowcher61.netskope.netskope_urllist:
+    name: Corporate-Allowlist
+    purge: true
+    urls:
+      - example.com
+      - partner.example.org
+```
+
+Manage a SCIM group and its members (SCIM user ids):
+
+```yaml
+- name: Ensure the group exists with these members added
+  mlowcher61.netskope.netskope_scim_group:
+    display_name: Engineering
+    members:
+      - "{{ scim_user_id_alice }}"
+      - "{{ scim_user_id_bob }}"
+
+- name: Delete the group entirely
+  mlowcher61.netskope.netskope_scim_group:
+    display_name: Old-Team
+    state: absent
 ```
 
 More in [`examples/`](examples/).
@@ -131,10 +192,10 @@ on every push and pull request.
 
 ## Roadmap
 
-- **Tier 1 (0.1.0)** — read-only info modules *(in progress)*
-- **Tier 2** — `netskope_urllist` (add/remove entries on an existing list only —
-  the API cannot create URL lists), `netskope_scim_group`,
-  `netskope_steering_profile`
+- **Tier 1 (0.1.0)** — read-only info modules ✅ *done*
+- **Tier 2 (0.2.0)** — `netskope_urllist`, `netskope_scim_group` ✅ *done*;
+  `netskope_steering_profile` pending (its exact v2 endpoint and schema must be
+  confirmed against the tenant's Swagger docs first)
 - **Tier 3** — `netskope_publisher` (deploy ZTNA publishers),
   `netskope_quarantine`
 
