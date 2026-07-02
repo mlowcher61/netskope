@@ -86,8 +86,9 @@ or `export NETSKOPE_TENANT_URL=... NETSKOPE_API_TOKEN=...` and pass nothing.
 |---|---|---|---|
 | `netskope_urllist` | `PUT /policy/urllist/{id}` | Add/remove/reconcile URL entries on an **existing** list (the API cannot create lists) | 0.2.0 |
 | `netskope_scim_group` | SCIM `/Groups` | Create/delete a SCIM group and manage its membership | 0.2.0 |
+| `netskope_publisher` | `/infrastructure/publishers` | Create/update/delete NPA publishers; optionally generate a registration token | 0.3.0 |
 
-Both management modules support **check mode** (`--check` predicts `changed`
+The management modules support **check mode** (`--check` predicts `changed`
 without writing) and **diff mode** (`--diff` shows before/after). They share
 one idempotency model:
 
@@ -210,8 +211,8 @@ ansible-test integration --docker --allow-unsupported netskope_urllist netskope_
 - **Tier 2 (0.2.0)** — `netskope_urllist`, `netskope_scim_group` ✅ *done*;
   `netskope_steering_profile` pending (its exact v2 endpoint and schema must be
   confirmed against the tenant's Swagger docs first)
-- **Tier 3** — `netskope_publisher` (deploy ZTNA publishers),
-  `netskope_quarantine`
+- **Tier 3** — `netskope_publisher` ✅ *done (0.3.0)*; `netskope_quarantine`
+  pending
 
 Every state-changing module will check current state via the matching `_info`
 logic before writing, so operations are idempotent.

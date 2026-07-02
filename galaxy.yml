@@ -1,7 +1,7 @@
 ---
 namespace: mlowcher61
 name: netskope
-version: 0.2.0
+version: 0.3.0
 readme: README.md
 authors:
   - mlowcher61 <mlowcher@hotmail.com>
