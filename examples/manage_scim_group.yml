@@ -1,0 +1,60 @@
+---
+# Example playbook: manage a Netskope SCIM group and its membership.
+#
+# In AAP, attach the "Netskope API Token" custom credential to the job template
+# and the tenant URL + token arrive as environment variables automatically — no
+# vars needed here. Outside AAP, export NETSKOPE_TENANT_URL / NETSKOPE_API_TOKEN
+# or pass a `provider` dict.
+#
+# Group members are SCIM user ids, so this example first resolves the ids
+# from userNames with netskope_scim_info.
+#
+# Run with --check --diff first to preview what would change.
+- name: Manage a Netskope SCIM group
+  hosts: localhost
+  gather_facts: false
+  vars:
+    group_name: Engineering
+    member_usernames:
+      - alice@example.com
+      - bob@example.com
+  tasks:
+    - name: Look up the SCIM user id for each member
+      mlowcher61.netskope.netskope_scim_info:
+        object_type: users
+        filter: 'userName eq "{{ item }}"'
+      loop: "{{ member_usernames }}"
+      register: scim_user_lookups
+
+    - name: Collect the resolved user ids
+      ansible.builtin.set_fact:
+        member_ids: >-
+          {{ scim_user_lookups.results
+             | map(attribute='resources')
+             | flatten
+             | map(attribute='id')
+             | list }}
+
+    - name: Ensure the group exists with these members added
+      mlowcher61.netskope.netskope_scim_group:
+        display_name: "{{ group_name }}"
+        members: "{{ member_ids }}"
+      register: scim_group_result
+
+    - name: Show the group after the change
+      ansible.builtin.debug:
+        var: scim_group_result.scim_group
+
+    # Uncomment for config-as-code style: membership is reconciled exactly
+    # and anyone not in member_ids is removed from the group.
+    # - name: Reconcile group membership exactly
+    #   mlowcher61.netskope.netskope_scim_group:
+    #     display_name: "{{ group_name }}"
+    #     purge: true
+    #     members: "{{ member_ids }}"
+
+    # Uncomment to delete a group entirely.
+    # - name: Delete a retired group
+    #   mlowcher61.netskope.netskope_scim_group:
+    #     display_name: Old-Team
+    #     state: absent

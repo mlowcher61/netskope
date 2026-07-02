@@ -1,0 +1,43 @@
+---
+# Example playbook: manage entries on an existing Netskope URL list.
+#
+# In AAP, attach the "Netskope API Token" custom credential to the job template
+# and the tenant URL + token arrive as environment variables automatically — no
+# vars needed here. Outside AAP, export NETSKOPE_TENANT_URL / NETSKOPE_API_TOKEN
+# or pass a `provider` dict.
+#
+# Run with --check --diff first to preview what would change.
+- name: Manage Netskope URL list entries
+  hosts: localhost
+  gather_facts: false
+  vars:
+    urllist_name: Corporate-Allowlist
+  tasks:
+    - name: Ensure these URLs are on the list (leaves other entries alone)
+      mlowcher61.netskope.netskope_urllist:
+        name: "{{ urllist_name }}"
+        urls:
+          - partner.example.com
+          - vendor.example.com
+      register: urllist_result
+
+    - name: Show the list after the change
+      ansible.builtin.debug:
+        var: urllist_result.urllist
+
+    # Uncomment for config-as-code style: the list will contain exactly
+    # these URLs and anything else is removed.
+    # - name: Make the list contain exactly this set
+    #   mlowcher61.netskope.netskope_urllist:
+    #     name: "{{ urllist_name }}"
+    #     purge: true
+    #     urls:
+    #       - partner.example.com
+    #       - vendor.example.com
+
+    - name: Remove a retired URL from the list
+      mlowcher61.netskope.netskope_urllist:
+        name: "{{ urllist_name }}"
+        state: absent
+        urls:
+          - old.example.com
