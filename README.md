@@ -202,6 +202,13 @@ on every push and pull request.
 Every state-changing module will check current state via the matching `_info`
 logic before writing, so operations are idempotent.
 
+## Changelog
+
+See [CHANGELOG.rst](CHANGELOG.rst). Release notes are maintained with
+[antsibull-changelog](https://github.com/ansible-community/antsibull-changelog):
+add a fragment under `changelogs/fragments/` with each change, then run
+`antsibull-changelog release` when cutting a version.
+
 ## License
 
 GPL-3.0-or-later. See [COPYING](COPYING).

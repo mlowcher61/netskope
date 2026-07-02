@@ -1,0 +1,41 @@
+ancestor: null
+releases:
+  0.1.0:
+    release_date: '2026-07-01'
+    changes:
+      release_summary: >-
+        Initial release of the mlowcher61.netskope collection for the Netskope
+        REST API v2. Ships read-only lookup modules, shared credential handling
+        (Ansible Automation Platform custom credential injection via
+        environment variables, or an explicit ``provider`` dict), an execution
+        environment definition, and AAP config-as-code.
+    modules:
+      - name: netskope_alert_info
+        description: Retrieve Netskope alerts
+        namespace: ''
+      - name: netskope_publisher_info
+        description: List Netskope Private Access publishers
+        namespace: ''
+      - name: netskope_scim_info
+        description: List Netskope SCIM users or groups
+        namespace: ''
+      - name: netskope_urllist_info
+        description: Retrieve Netskope URL lists
+        namespace: ''
+  0.2.0:
+    release_date: '2026-07-02'
+    changes:
+      release_summary: >-
+        First state-changing modules. Both support check mode, ``--diff``,
+        idempotent re-runs, and a uniform ``state``/``purge`` model, and ship
+        with example playbooks under ``examples/``.
+      minor_changes:
+        - module_utils - added a shared ``find_record`` helper used by
+          state-changing modules to resolve existing resources by attribute.
+    modules:
+      - name: netskope_scim_group
+        description: Manage a Netskope SCIM group and its membership
+        namespace: ''
+      - name: netskope_urllist
+        description: Manage entries on an existing Netskope URL list
+        namespace: ''
