@@ -87,6 +87,7 @@ or `export NETSKOPE_TENANT_URL=... NETSKOPE_API_TOKEN=...` and pass nothing.
 | `netskope_urllist` | `PUT /policy/urllist/{id}` | Add/remove/reconcile URL entries on an **existing** list (the API cannot create lists) | 0.2.0 |
 | `netskope_scim_group` | SCIM `/Groups` | Create/delete a SCIM group and manage its membership | 0.2.0 |
 | `netskope_publisher` | `/infrastructure/publishers` | Create/update/delete NPA publishers; optionally generate a registration token | 0.3.0 |
+| `netskope_private_app` | `/steering/apps/private` | Create/update/delete NPA private application definitions (publishers referenced by name) | 0.3.0 |
 
 The management modules support **check mode** (`--check` predicts `changed`
 without writing) and **diff mode** (`--diff` shows before/after). They share
@@ -211,8 +212,12 @@ ansible-test integration --docker --allow-unsupported netskope_urllist netskope_
 - **Tier 2 (0.2.0)** — `netskope_urllist`, `netskope_scim_group` ✅ *done*;
   `netskope_steering_profile` pending (its exact v2 endpoint and schema must be
   confirmed against the tenant's Swagger docs first)
-- **Tier 3** — `netskope_publisher` ✅ *done (0.3.0)*; `netskope_quarantine`
-  pending
+- **Tier 3** — `netskope_publisher` ✅, `netskope_private_app` ✅ *(0.3.0)*;
+  `netskope_quarantine` pending
+- *Dropped:* `netskope_steering_profile` — client steering-config profiles are
+  not exposed by the public REST API v2 (verified against Netskope's official
+  OpenAPI collection); `netskope_private_app` covers the `/steering` namespace
+  instead
 
 Every state-changing module will check current state via the matching `_info`
 logic before writing, so operations are idempotent.
