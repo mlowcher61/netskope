@@ -190,6 +190,20 @@ ansible-test units --docker
 CI (GitHub Actions) runs sanity across `stable-2.16` / `stable-2.17` plus units
 on every push and pull request.
 
+### Integration tests (real tenant required)
+
+Integration tests run the modules against a live Netskope tenant, so they are
+marked `unsupported` and never run in CI. To run them yourself:
+
+```bash
+cp tests/integration/integration_config.yml.template tests/integration/integration_config.yml
+# edit integration_config.yml: tenant URL, API token, and an existing
+# non-production URL list the tests may modify (entries are restored)
+ansible-test integration --docker --allow-unsupported netskope_urllist netskope_scim_group
+```
+
+`integration_config.yml` is gitignored — never commit tenant credentials.
+
 ## Roadmap
 
 - **Tier 1 (0.1.0)** — read-only info modules ✅ *done*

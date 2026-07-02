@@ -1,0 +1,27 @@
+---
+- name: Verify required integration variables are set
+  ansible.builtin.assert:
+    that:
+      - netskope_tenant_url is defined
+      - netskope_api_token is defined
+    fail_msg: >-
+      Copy tests/integration/integration_config.yml.template to
+      integration_config.yml and fill in your tenant details.
+
+- name: Integration tests for netskope_urllist_info
+  module_defaults:
+    mlowcher61.netskope.netskope_urllist_info:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_token: "{{ netskope_api_token }}"
+  block:
+    - name: Retrieve all URL lists
+      mlowcher61.netskope.netskope_urllist_info:
+      register: result
+
+    - name: Assert the result shape
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+          - result.urllists is defined
+          - result.urllists is sequence

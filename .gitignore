@@ -13,3 +13,6 @@ __pycache__/
 .DS_Store
 .vscode/
 .idea/
+
+# Tenant credentials for integration tests — never commit
+/tests/integration/integration_config.yml

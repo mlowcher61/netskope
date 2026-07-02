@@ -1,0 +1,113 @@
+---
+- name: Verify required integration variables are set
+  ansible.builtin.assert:
+    that:
+      - netskope_tenant_url is defined
+      - netskope_api_token is defined
+      - netskope_test_urllist is defined
+    fail_msg: >-
+      Copy tests/integration/integration_config.yml.template to
+      integration_config.yml and fill in your tenant details.
+
+- name: Integration tests for netskope_urllist
+  vars:
+    sentinel_url: ansible-integration-test.example.com
+  module_defaults:
+    mlowcher61.netskope.netskope_urllist:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_token: "{{ netskope_api_token }}"
+    mlowcher61.netskope.netskope_urllist_info:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_token: "{{ netskope_api_token }}"
+  block:
+    - name: Snapshot all URL lists before changing anything
+      mlowcher61.netskope.netskope_urllist_info:
+      register: before_all
+
+    - name: Assert the test list exists on the tenant
+      ansible.builtin.assert:
+        that:
+          - before_all.urllists | selectattr('name', 'equalto', netskope_test_urllist) | list | length == 1
+        fail_msg: >-
+          URL list "{{ netskope_test_urllist }}" was not found on the tenant.
+          Create it first (the API cannot create lists).
+
+    - name: Remember the original entries for restoration
+      ansible.builtin.set_fact:
+        original_urls: >-
+          {{ (((before_all.urllists
+                | selectattr('name', 'equalto', netskope_test_urllist)
+                | first).data | default({})).urls | default([]))
+             | reject('equalto', sentinel_url) | list }}
+
+    - name: Start from a known state without the sentinel URL
+      mlowcher61.netskope.netskope_urllist:
+        name: "{{ netskope_test_urllist }}"
+        state: absent
+        urls: ["{{ sentinel_url }}"]
+
+    - name: Add the sentinel URL (check mode)
+      mlowcher61.netskope.netskope_urllist:
+        name: "{{ netskope_test_urllist }}"
+        urls: ["{{ sentinel_url }}"]
+      check_mode: true
+      register: check_add
+
+    - name: Verify check mode predicted a change without applying it
+      mlowcher61.netskope.netskope_urllist_info:
+      register: after_check
+
+    - name: Assert check mode behaviour
+      ansible.builtin.assert:
+        that:
+          - check_add is changed
+          - sentinel_url not in
+            (((after_check.urllists
+               | selectattr('name', 'equalto', netskope_test_urllist)
+               | first).data | default({})).urls | default([]))
+
+    - name: Add the sentinel URL for real
+      mlowcher61.netskope.netskope_urllist:
+        name: "{{ netskope_test_urllist }}"
+        urls: ["{{ sentinel_url }}"]
+      register: real_add
+
+    - name: Add the sentinel URL again (idempotency)
+      mlowcher61.netskope.netskope_urllist:
+        name: "{{ netskope_test_urllist }}"
+        urls: ["{{ sentinel_url }}"]
+      register: repeat_add
+
+    - name: Remove the sentinel URL
+      mlowcher61.netskope.netskope_urllist:
+        name: "{{ netskope_test_urllist }}"
+        state: absent
+        urls: ["{{ sentinel_url }}"]
+      register: real_remove
+
+    - name: Remove the sentinel URL again (idempotency)
+      mlowcher61.netskope.netskope_urllist:
+        name: "{{ netskope_test_urllist }}"
+        state: absent
+        urls: ["{{ sentinel_url }}"]
+      register: repeat_remove
+
+    - name: Assert the full lifecycle behaved
+      ansible.builtin.assert:
+        that:
+          - real_add is changed
+          - sentinel_url in real_add.urllist.data.urls
+          - repeat_add is not changed
+          - real_remove is changed
+          - sentinel_url not in real_remove.urllist.data.urls
+          - repeat_remove is not changed
+
+  always:
+    - name: Restore the original entries exactly
+      mlowcher61.netskope.netskope_urllist:
+        name: "{{ netskope_test_urllist }}"
+        purge: true
+        urls: "{{ original_urls }}"
+      when: original_urls is defined

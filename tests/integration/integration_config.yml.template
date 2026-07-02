@@ -1,0 +1,10 @@
+---
+# Copy this file to integration_config.yml and fill in real values.
+# integration_config.yml is gitignored — never commit tenant credentials.
+netskope_tenant_url: https://example.goskope.com
+netskope_api_token: REPLACE_ME
+
+# An EXISTING URL list the tests may modify. Its entries are snapshotted
+# before the tests and restored afterwards, but do not point this at a
+# production-critical list.
+netskope_test_urllist: Ansible-Integration-Test

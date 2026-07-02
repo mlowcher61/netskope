@@ -1,0 +1,80 @@
+---
+- name: Verify required integration variables are set
+  ansible.builtin.assert:
+    that:
+      - netskope_tenant_url is defined
+      - netskope_api_token is defined
+    fail_msg: >-
+      Copy tests/integration/integration_config.yml.template to
+      integration_config.yml and fill in your tenant details.
+
+- name: Pick a unique group name for this run
+  ansible.builtin.set_fact:
+    test_group_name: "ansible-it-{{ 999999999 | random }}"
+
+- name: Integration tests for netskope_scim_group
+  module_defaults:
+    mlowcher61.netskope.netskope_scim_group:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_token: "{{ netskope_api_token }}"
+    mlowcher61.netskope.netskope_scim_info:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_token: "{{ netskope_api_token }}"
+  block:
+    - name: Create the group (check mode)
+      mlowcher61.netskope.netskope_scim_group:
+        display_name: "{{ test_group_name }}"
+      check_mode: true
+      register: check_create
+
+    - name: Verify check mode did not create the group
+      mlowcher61.netskope.netskope_scim_info:
+        object_type: groups
+        filter: 'displayName eq "{{ test_group_name }}"'
+      register: after_check
+
+    - name: Assert check mode behaviour
+      ansible.builtin.assert:
+        that:
+          - check_create is changed
+          - after_check.resources | length == 0
+
+    - name: Create the group for real
+      mlowcher61.netskope.netskope_scim_group:
+        display_name: "{{ test_group_name }}"
+      register: real_create
+
+    - name: Create the group again (idempotency)
+      mlowcher61.netskope.netskope_scim_group:
+        display_name: "{{ test_group_name }}"
+      register: repeat_create
+
+    - name: Delete the group
+      mlowcher61.netskope.netskope_scim_group:
+        display_name: "{{ test_group_name }}"
+        state: absent
+      register: real_delete
+
+    - name: Delete the group again (idempotency)
+      mlowcher61.netskope.netskope_scim_group:
+        display_name: "{{ test_group_name }}"
+        state: absent
+      register: repeat_delete
+
+    - name: Assert the full lifecycle behaved
+      ansible.builtin.assert:
+        that:
+          - real_create is changed
+          - real_create.scim_group.displayName == test_group_name
+          - repeat_create is not changed
+          - real_delete is changed
+          - repeat_delete is not changed
+
+  always:
+    - name: Make sure the test group is gone
+      mlowcher61.netskope.netskope_scim_group:
+        display_name: "{{ test_group_name }}"
+        state: absent
+      failed_when: false
