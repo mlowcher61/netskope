@@ -27,6 +27,13 @@ netskope_credential_types:
           label: Netskope API Token
           secret: true
           help_text: A Netskope REST API v2 token scoped to this tenant.
+        - id: api_v1_token
+          type: string
+          label: Netskope REST API v1 Token (optional)
+          secret: true
+          help_text: >-
+            Only needed for the quarantine modules, which use the legacy REST
+            API v1 (Settings > Tools > Rest API v1 in the tenant UI).
       required:
         - tenant_url
         - api_token
@@ -34,3 +41,4 @@ netskope_credential_types:
       env:
         NETSKOPE_TENANT_URL: !unsafe "{{ tenant_url }}"
         NETSKOPE_API_TOKEN: !unsafe "{{ api_token }}"
+        NETSKOPE_API_V1_TOKEN: !unsafe "{{ api_v1_token | default('') }}"

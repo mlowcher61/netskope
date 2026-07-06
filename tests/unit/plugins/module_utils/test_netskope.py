@@ -137,6 +137,97 @@ def test_request_maps_401_to_helpful_message(mock_open_url):
     assert "Authentication failed" in module.fail_kwargs["msg"]
 
 
+# --- legacy v1 client -------------------------------------------------------
+
+def make_v1_module(**params):
+    base = dict(tenant_url=None, api_v1_token=None, provider=None)
+    base.update(params)
+    return FakeModule(base)
+
+
+def test_v1_credentials_resolve_with_precedence(monkeypatch):
+    monkeypatch.setenv(ns.NETSKOPE_ENV_V1_TOKEN, "env-v1")
+    module = make_v1_module(
+        tenant_url="https://acme.goskope.com",
+        provider=dict(api_v1_token="prov-v1"),
+    )
+    assert ns.resolve_v1_credentials(module) == ("https://acme.goskope.com", "prov-v1")
+
+
+def test_v1_missing_token_fails_with_v1_hint(monkeypatch):
+    monkeypatch.delenv(ns.NETSKOPE_ENV_V1_TOKEN, raising=False)
+    module = make_v1_module(tenant_url="https://acme.goskope.com")
+    with pytest.raises(SystemExit):
+        ns.resolve_v1_credentials(module)
+    assert "api_v1_token" in module.fail_kwargs["msg"]
+
+
+def test_v1_base_url_uses_v1_suffix():
+    assert ns.NetskopeV1Client._normalize_base_url(
+        "acme.goskope.com") == "https://acme.goskope.com/api/v1"
+
+
+@patch("ansible_collections.mlowcher61.netskope.plugins.module_utils.netskope.open_url")
+def test_v1_request_appends_token_query_param(mock_open_url):
+    module = make_v1_module(tenant_url="https://acme.goskope.com",
+                            api_v1_token="sekret")
+    client = ns.NetskopeV1Client(module)
+    ok = MagicMock()
+    ok.read.return_value = b'{"status": "success", "data": {}}'
+    mock_open_url.return_value = ok
+
+    client.request("GET", "quarantine", params={"op": "get-files"})
+    url = mock_open_url.call_args[0][0]
+    assert url.startswith("https://acme.goskope.com/api/v1/quarantine?")
+    assert "op=get-files" in url
+    assert "token=sekret" in url
+
+
+@patch("ansible_collections.mlowcher61.netskope.plugins.module_utils.netskope.open_url")
+def test_v1_error_inside_http_200_fails(mock_open_url):
+    module = make_v1_module(tenant_url="https://acme.goskope.com",
+                            api_v1_token="sekret")
+    client = ns.NetskopeV1Client(module)
+    ok = MagicMock()
+    ok.read.return_value = b'{"status": "error", "errors": ["invalid token"]}'
+    mock_open_url.return_value = ok
+
+    with pytest.raises(SystemExit):
+        client.request("GET", "quarantine", params={"op": "get-files"})
+    assert "invalid token" in module.fail_kwargs["msg"]
+
+
+@patch("ansible_collections.mlowcher61.netskope.plugins.module_utils.netskope.open_url")
+def test_v1_http_error_redacts_token_from_message(mock_open_url):
+    module = make_v1_module(tenant_url="https://acme.goskope.com",
+                            api_v1_token="sekret")
+    client = ns.NetskopeV1Client(module)
+    mock_open_url.side_effect = ns.HTTPError("u", 403, "Forbidden", {}, None)
+
+    with pytest.raises(SystemExit):
+        client.request("GET", "quarantine", params={"op": "get-files"})
+    assert "sekret" not in module.fail_kwargs["msg"]
+    assert "token=<redacted>" in module.fail_kwargs["msg"]
+
+
+def test_redact_url_only_touches_token_param():
+    url = "https://x/api/v1/quarantine?op=get-files&token=abc123&limit=5"
+    redacted = ns.NetskopeClient._redact_url(url)
+    assert redacted == "https://x/api/v1/quarantine?op=get-files&token=<redacted>&limit=5"
+
+
+# --- flatten_quarantined_files() --------------------------------------------
+
+def test_flatten_quarantined_files_annotates_and_flattens():
+    payload = {"data": {"quarantined": [
+        {"quarantine_profile_id": "1", "quarantine_profile_name": "Default",
+         "files": [{"file_id": "f1"}]},
+    ]}}
+    files = ns.flatten_quarantined_files(payload)
+    assert files == [{"file_id": "f1", "quarantine_profile_id": "1",
+                      "quarantine_profile_name": "Default"}]
+
+
 # --- find_record helper ---------------------------------------------------
 
 from ansible_collections.mlowcher61.netskope.plugins.module_utils.netskope import (

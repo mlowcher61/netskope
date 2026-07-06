@@ -14,6 +14,7 @@ __metaclass__ = type
 
 import json
 import os
+import re
 import time
 
 from ansible.module_utils.common.text.converters import to_native
@@ -23,6 +24,11 @@ from ansible.module_utils.urls import open_url
 
 NETSKOPE_ENV_TENANT = "NETSKOPE_TENANT_URL"
 NETSKOPE_ENV_TOKEN = "NETSKOPE_API_TOKEN"
+NETSKOPE_ENV_V1_TOKEN = "NETSKOPE_API_V1_TOKEN"
+
+# The v1 API carries its token as a query parameter, so any URL echoed back in
+# an error message must have it stripped first.
+TOKEN_QUERY_RE = re.compile(r"(token=)[^&]+")
 
 DEFAULT_PAGE_LIMIT = 100
 DEFAULT_TIMEOUT = 30
@@ -41,6 +47,29 @@ def find_record(records, match):
     return None
 
 
+def flatten_quarantined_files(payload):
+    """Flatten the v1 quarantine ``op=get-files`` envelope into one flat list.
+
+    The endpoint groups files under ``data.quarantined[*].files``; each
+    returned file dict is annotated with its holding profile's id and name so
+    callers do not need to walk the nesting. Shared by the quarantine modules.
+    """
+    data = payload.get("data") if isinstance(payload, dict) else None
+    profiles = data.get("quarantined") if isinstance(data, dict) else None
+    files = []
+    for profile in profiles or []:
+        for record in profile.get("files") or []:
+            row = dict(record)
+            row.setdefault(
+                "quarantine_profile_id", profile.get("quarantine_profile_id")
+            )
+            row.setdefault(
+                "quarantine_profile_name", profile.get("quarantine_profile_name")
+            )
+            files.append(row)
+    return files
+
+
 def netskope_argument_spec():
     """Return the argument spec shared by every module in this collection.
 
@@ -55,6 +84,26 @@ def netskope_argument_spec():
             options=dict(
                 tenant_url=dict(type="str"),
                 api_token=dict(type="str", no_log=True),
+            ),
+        ),
+    )
+
+
+def netskope_v1_argument_spec():
+    """Return the argument spec for modules that call the legacy REST API v1.
+
+    A handful of features (quarantine management, for one) were never ported
+    to REST API v2 and authenticate with a separate v1 token, so these modules
+    take ``api_v1_token`` instead of ``api_token``.
+    """
+    return dict(
+        tenant_url=dict(type="str"),
+        api_v1_token=dict(type="str", no_log=True),
+        provider=dict(
+            type="dict",
+            options=dict(
+                tenant_url=dict(type="str"),
+                api_v1_token=dict(type="str", no_log=True),
             ),
         ),
     )
@@ -93,12 +142,52 @@ def resolve_credentials(module):
     return tenant_url, api_token
 
 
+def resolve_v1_credentials(module):
+    """Resolve tenant_url and the legacy v1 api token.
+
+    Same precedence as :func:`resolve_credentials` (parameter -> provider ->
+    environment). The resolved token is registered with the module's no_log
+    machinery because, unlike the v2 header token, it travels in URLs and an
+    environment-sourced value would otherwise not be masked in output.
+    """
+    provider = module.params.get("provider") or {}
+    tenant_url = (
+        module.params.get("tenant_url")
+        or provider.get("tenant_url")
+        or os.environ.get(NETSKOPE_ENV_TENANT)
+    )
+    api_v1_token = (
+        module.params.get("api_v1_token")
+        or provider.get("api_v1_token")
+        or os.environ.get(NETSKOPE_ENV_V1_TOKEN)
+    )
+    if not tenant_url:
+        module.fail_json(
+            msg="A Netskope tenant_url must be supplied via the 'tenant_url' "
+            "parameter, the 'provider' dict, or the %s environment variable."
+            % NETSKOPE_ENV_TENANT
+        )
+    if not api_v1_token:
+        module.fail_json(
+            msg="A Netskope api_v1_token must be supplied via the "
+            "'api_v1_token' parameter, the 'provider' dict, or the %s "
+            "environment variable. Note this is the legacy REST API v1 "
+            "token, not the v2 token." % NETSKOPE_ENV_V1_TOKEN
+        )
+    no_log_values = getattr(module, "no_log_values", None)
+    if no_log_values is not None:
+        no_log_values.add(api_v1_token)
+    return tenant_url, api_v1_token
+
+
 class NetskopeClient:
     """A thin REST client for the Netskope API v2, built on :func:`open_url`.
 
     It deliberately avoids third-party dependencies (no ``requests``) so that it
     runs unchanged inside any execution environment.
     """
+
+    API_SUFFIX = "/api/v2"
 
     def __init__(self, module):
         self.module = module
@@ -111,15 +200,20 @@ class NetskopeClient:
         }
         self.timeout = DEFAULT_TIMEOUT
 
-    @staticmethod
-    def _normalize_base_url(tenant_url):
-        """Turn a tenant hostname or URL into a full ``.../api/v2`` base URL."""
+    @classmethod
+    def _normalize_base_url(cls, tenant_url):
+        """Turn a tenant hostname or URL into a full API base URL."""
         url = tenant_url.strip().rstrip("/")
         if not url.startswith("http://") and not url.startswith("https://"):
             url = "https://" + url
-        if not url.endswith("/api/v2"):
-            url = url + "/api/v2"
+        if not url.endswith(cls.API_SUFFIX):
+            url = url + cls.API_SUFFIX
         return url
+
+    @staticmethod
+    def _redact_url(url):
+        """Strip credential material from a URL before it appears in output."""
+        return TOKEN_QUERY_RE.sub(r"\1<redacted>", url)
 
     def request(self, method, path, params=None, data=None):
         """Perform a single API call and return the decoded JSON body."""
@@ -232,6 +326,7 @@ class NetskopeClient:
         time.sleep(delay)
 
     def _fail_for_http_error(self, error, method, url):
+        url = self._redact_url(url)
         try:
             detail = error.read().decode("utf-8")
         except Exception:
@@ -257,3 +352,42 @@ class NetskopeClient:
             % (method, url, error.code),
         )
         self.module.fail_json(msg=msg, status_code=error.code, response=parsed)
+
+
+class NetskopeV1Client(NetskopeClient):
+    """Client for the legacy Netskope REST API v1.
+
+    A few features (quarantine management among them) were never ported to
+    REST API v2. The v1 API differs from v2 in three ways this class absorbs:
+
+    * the base path is ``/api/v1``;
+    * authentication is a v1 token passed as the ``token`` query parameter on
+      every call rather than a header;
+    * responses use a ``status``/``data`` envelope and can report an error
+      inside an HTTP 200, so the body must be checked as well.
+    """
+
+    API_SUFFIX = "/api/v1"
+
+    def __init__(self, module):
+        self.module = module
+        tenant_url, api_v1_token = resolve_v1_credentials(module)
+        self.base_url = self._normalize_base_url(tenant_url)
+        self.token = api_v1_token
+        self.headers = {"Accept": "application/json"}
+        self.timeout = DEFAULT_TIMEOUT
+
+    def request(self, method, path, params=None, data=None):
+        params = dict(params or {})
+        params["token"] = self.token
+        payload = super(NetskopeV1Client, self).request(
+            method, path, params=params, data=data
+        )
+        if isinstance(payload, dict) and payload.get("status") == "error":
+            errors = payload.get("errors") or []
+            self.module.fail_json(
+                msg="Netskope API v1 request %s %s failed: %s"
+                % (method, path, "; ".join(to_native(e) for e in errors) or "unknown error"),
+                errors=errors,
+            )
+        return payload

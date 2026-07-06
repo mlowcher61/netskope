@@ -41,6 +41,13 @@ this order (first match wins):
    the provider pattern used in network collections)
 3. **Environment variables** — `NETSKOPE_TENANT_URL` / `NETSKOPE_API_TOKEN`
 
+One exception: the **quarantine modules** (`netskope_quarantine_info`,
+`netskope_quarantine`) call the legacy REST API **v1**, because Netskope has
+never exposed quarantine management in v2. They take `api_v1_token` (or the
+`NETSKOPE_API_V1_TOKEN` environment variable) instead of `api_token` — this is
+a **separate credential** created under *Settings > Tools > Rest API v1* in
+the tenant UI. The custom credential type below has an optional field for it.
+
 ### In AAP: use a custom credential (recommended)
 
 Rather than vaulting the token, create the **Netskope API Token** custom
@@ -79,6 +86,7 @@ or `export NETSKOPE_TENANT_URL=... NETSKOPE_API_TOKEN=...` and pass nothing.
 | `netskope_alert_info` | alerts / events | DLP, malware, policy alerts | 0.1.0 |
 | `netskope_scim_info` | SCIM users / groups | List SCIM users and groups | 0.1.0 |
 | `netskope_publisher_info` | Private Access publishers | Publishers + health status | 0.1.0 |
+| `netskope_quarantine_info` | v1 `quarantine?op=get-files` | Files held in quarantine (legacy v1 API — needs the v1 token) | 0.3.0 |
 
 ### Management (state-changing)
 
@@ -88,6 +96,7 @@ or `export NETSKOPE_TENANT_URL=... NETSKOPE_API_TOKEN=...` and pass nothing.
 | `netskope_scim_group` | SCIM `/Groups` | Create/delete a SCIM group and manage its membership | 0.2.0 |
 | `netskope_publisher` | `/infrastructure/publishers` | Create/update/delete NPA publishers; optionally generate a registration token | 0.3.0 |
 | `netskope_private_app` | `/steering/apps/private` | Create/update/delete NPA private application definitions (publishers referenced by name) | 0.3.0 |
+| `netskope_quarantine` | v1 `quarantine?op=take-action` | Release (`allow`) or permanently delete (`block`) a quarantined file (legacy v1 API — needs the v1 token) | 0.3.0 |
 
 The management modules support **check mode** (`--check` predicts `changed`
 without writing) and **diff mode** (`--diff` shows before/after). They share
@@ -101,6 +110,10 @@ one idempotency model:
   the API, so in `netskope_urllist` `state: absent` removes the supplied
   *entries* from the list. A SCIM group *is* deletable, so in
   `netskope_scim_group` `state: absent` deletes the *group*.
+- `netskope_quarantine` is action-shaped rather than `present`/`absent`: both
+  `allow` and `block` remove the file from quarantine, so idempotency is by
+  membership — if the file is no longer quarantined the task reports ok. Check
+  and diff mode still work.
 
 See each module's built-in docs for full options and return values:
 
@@ -212,8 +225,10 @@ ansible-test integration --docker --allow-unsupported netskope_urllist netskope_
 - **Tier 2 (0.2.0)** — `netskope_urllist`, `netskope_scim_group` ✅ *done*;
   `netskope_steering_profile` pending (its exact v2 endpoint and schema must be
   confirmed against the tenant's Swagger docs first)
-- **Tier 3** — `netskope_publisher` ✅, `netskope_private_app` ✅ *(0.3.0)*;
-  `netskope_quarantine` pending
+- **Tier 3 (0.3.0)** — `netskope_publisher` ✅, `netskope_private_app` ✅,
+  `netskope_quarantine` + `netskope_quarantine_info` ✅ *(legacy v1 API —
+  quarantine management was never ported to REST API v2, verified against
+  Netskope's official OpenAPI collection and current docs)*
 - *Dropped:* `netskope_steering_profile` — client steering-config profiles are
   not exposed by the public REST API v2 (verified against Netskope's official
   OpenAPI collection); `netskope_private_app` covers the `/steering` namespace
