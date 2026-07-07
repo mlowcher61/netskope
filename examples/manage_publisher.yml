@@ -1,0 +1,42 @@
+---
+# Example playbook: manage an NPA publisher and generate its registration token.
+#
+# In AAP, attach the "Netskope API Token" custom credential to the job template
+# and the tenant URL + token arrive as environment variables automatically — no
+# vars needed here. Outside AAP, export NETSKOPE_TENANT_URL / NETSKOPE_API_TOKEN
+# or pass a `provider` dict.
+#
+# Run with --check --diff first to preview what would change.
+- name: Manage an NPA publisher
+  hosts: localhost
+  gather_facts: false
+  vars:
+    publisher_name: dc1-publisher-01
+  tasks:
+    - name: Ensure the publisher exists
+      mlowcher61.netskope.netskope_publisher:
+        name: "{{ publisher_name }}"
+      register: publisher_result
+
+    - name: Show the publisher record
+      ansible.builtin.debug:
+        var: publisher_result.publisher
+
+    # A registration token enrols the publisher VM with the tenant. The API
+    # regenerates (and invalidates the previous) token on every call, so this
+    # task always reports changed — run it only when you actually need a token.
+    - name: Generate a registration token for the publisher VM
+      mlowcher61.netskope.netskope_publisher:
+        name: "{{ publisher_name }}"
+        generate_token: true
+      register: token_result
+
+    - name: Show the registration token (paste into the publisher VM wizard)
+      ansible.builtin.debug:
+        var: token_result.token
+
+    # Uncomment to remove a decommissioned publisher.
+    # - name: Delete a retired publisher
+    #   mlowcher61.netskope.netskope_publisher:
+    #     name: old-publisher
+    #     state: absent

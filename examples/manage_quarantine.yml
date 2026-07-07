@@ -1,0 +1,35 @@
+---
+# Example playbook: review quarantined files and release one.
+#
+# The quarantine modules use the legacy REST API v1 (quarantine management was
+# never ported to v2), so they need the SEPARATE v1 token created under
+# Settings > Tools > Rest API v1 in the tenant UI.
+#
+# In AAP, fill the optional "Netskope REST API v1 Token" field on the
+# "Netskope API Token" custom credential and it arrives as the
+# NETSKOPE_API_V1_TOKEN environment variable automatically. Outside AAP,
+# export NETSKOPE_TENANT_URL / NETSKOPE_API_V1_TOKEN or pass a `provider` dict.
+#
+# Run with --check --diff first to preview what would change.
+- name: Review and release quarantined files
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: List all quarantined files
+      mlowcher61.netskope.netskope_quarantine_info:
+      register: quarantine
+
+    - name: Show what is being held
+      ansible.builtin.debug:
+        msg: >-
+          {{ quarantine.count }} file(s) in quarantine:
+          {{ quarantine.files | map(attribute='original_file_name') | list }}
+
+    # Pass -e quarantine_file_id=<file_id> (from the listing above) to release
+    # a file back to the user. Use action: block to delete it permanently
+    # instead. Both remove the file from quarantine, so re-running is a no-op.
+    - name: Release a false positive back to the user
+      mlowcher61.netskope.netskope_quarantine:
+        file_id: "{{ quarantine_file_id }}"
+        action: allow
+      when: quarantine_file_id is defined

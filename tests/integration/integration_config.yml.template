@@ -8,3 +8,8 @@ netskope_api_token: REPLACE_ME
 # before the tests and restored afterwards, but do not point this at a
 # production-critical list.
 netskope_test_urllist: Ansible-Integration-Test
+
+# Only needed for the netskope_quarantine / netskope_quarantine_info targets,
+# which use the legacy REST API v1 (a separate token created under
+# Settings > Tools > Rest API v1 in the tenant UI).
+netskope_api_v1_token: REPLACE_ME

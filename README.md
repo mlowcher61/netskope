@@ -9,9 +9,9 @@ Netskope has no official Ansible collection today; this fills that gap with
 read-only *info* modules plus modules that manage URL list entries and SCIM
 groups.
 
-> **Release 0.2.0** — adds the first state-changing modules
-> (`netskope_urllist`, `netskope_scim_group`), with full `--check` and `--diff`
-> support. More are planned (see [Roadmap](#roadmap)).
+> **Release 0.3.0** — adds NPA infrastructure management (`netskope_publisher`,
+> `netskope_private_app`) and quarantine management (`netskope_quarantine`,
+> `netskope_quarantine_info`), all with full `--check` and `--diff` support.
 
 ## Requirements
 
@@ -28,7 +28,7 @@ ansible-galaxy collection install git+https://github.com/mlowcher61/netskope.git
 
 # ...or build and install locally
 ansible-galaxy collection build
-ansible-galaxy collection install mlowcher61-netskope-0.2.0.tar.gz
+ansible-galaxy collection install mlowcher61-netskope-0.3.0.tar.gz
 ```
 
 ## Authentication
@@ -219,12 +219,16 @@ ansible-test integration --docker --allow-unsupported netskope_urllist netskope_
 
 `integration_config.yml` is gitignored — never commit tenant credentials.
 
+The `netskope_publisher` and `netskope_private_app` targets create uniquely
+named test objects and always clean them up. The quarantine targets need the
+optional v1 token in `integration_config.yml`; the `netskope_quarantine`
+target only exercises the already-removed (no-op) path — it never acts on real
+quarantined files.
+
 ## Roadmap
 
 - **Tier 1 (0.1.0)** — read-only info modules ✅ *done*
-- **Tier 2 (0.2.0)** — `netskope_urllist`, `netskope_scim_group` ✅ *done*;
-  `netskope_steering_profile` pending (its exact v2 endpoint and schema must be
-  confirmed against the tenant's Swagger docs first)
+- **Tier 2 (0.2.0)** — `netskope_urllist`, `netskope_scim_group` ✅ *done*
 - **Tier 3 (0.3.0)** — `netskope_publisher` ✅, `netskope_private_app` ✅,
   `netskope_quarantine` + `netskope_quarantine_info` ✅ *(legacy v1 API —
   quarantine management was never ported to REST API v2, verified against

@@ -1,0 +1,52 @@
+---
+# Quarantine actions are one-way (allow and block both remove the file from
+# quarantine), so this target never acts on real quarantined data. It uses a
+# file id that cannot exist to exercise credential resolution, the v1 listing
+# call, and the idempotent already-gone path.
+- name: Verify required integration variables are set
+  ansible.builtin.assert:
+    that:
+      - netskope_tenant_url is defined
+      - netskope_api_v1_token is defined
+    fail_msg: >-
+      The quarantine modules use the legacy REST API v1. Set
+      netskope_api_v1_token in integration_config.yml (created under
+      Settings > Tools > Rest API v1 in the tenant UI).
+
+- name: Pick a file id that cannot be in quarantine
+  ansible.builtin.set_fact:
+    missing_file_id: "ansible-it-missing-{{ 999999999 | random }}"
+
+- name: Integration tests for netskope_quarantine
+  module_defaults:
+    mlowcher61.netskope.netskope_quarantine:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_v1_token: "{{ netskope_api_v1_token }}"
+  block:
+    - name: Allow a file that is not in quarantine (check mode)
+      mlowcher61.netskope.netskope_quarantine:
+        file_id: "{{ missing_file_id }}"
+        action: allow
+      check_mode: true
+      register: check_allow
+
+    - name: Allow a file that is not in quarantine
+      mlowcher61.netskope.netskope_quarantine:
+        file_id: "{{ missing_file_id }}"
+        action: allow
+      register: real_allow
+
+    - name: Block a file that is not in quarantine
+      mlowcher61.netskope.netskope_quarantine:
+        file_id: "{{ missing_file_id }}"
+        action: block
+      register: real_block
+
+    - name: Assert the already-gone path is idempotent
+      ansible.builtin.assert:
+        that:
+          - check_allow is not changed
+          - real_allow is not changed
+          - real_allow.file == {}
+          - real_block is not changed

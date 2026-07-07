@@ -1,0 +1,36 @@
+---
+- name: Verify required integration variables are set
+  ansible.builtin.assert:
+    that:
+      - netskope_tenant_url is defined
+      - netskope_api_v1_token is defined
+    fail_msg: >-
+      The quarantine modules use the legacy REST API v1. Set
+      netskope_api_v1_token in integration_config.yml (created under
+      Settings > Tools > Rest API v1 in the tenant UI).
+
+- name: Integration tests for netskope_quarantine_info
+  module_defaults:
+    mlowcher61.netskope.netskope_quarantine_info:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_v1_token: "{{ netskope_api_v1_token }}"
+  block:
+    - name: List all quarantined files
+      mlowcher61.netskope.netskope_quarantine_info:
+      register: all_files
+
+    - name: List with a time window (last 24h)
+      mlowcher61.netskope.netskope_quarantine_info:
+        start_time: "{{ (now(fmt='%s') | int) - 86400 }}"
+        end_time: "{{ now(fmt='%s') | int }}"
+      register: recent_files
+
+    - name: Assert the result shapes
+      ansible.builtin.assert:
+        that:
+          - all_files is not changed
+          - all_files.files is sequence
+          - all_files.count == all_files.files | length
+          - recent_files is not changed
+          - recent_files.files is sequence

@@ -1,0 +1,42 @@
+---
+# Example playbook: publish an internal web app through NPA.
+#
+# In AAP, attach the "Netskope API Token" custom credential to the job template
+# and the tenant URL + token arrive as environment variables automatically — no
+# vars needed here. Outside AAP, export NETSKOPE_TENANT_URL / NETSKOPE_API_TOKEN
+# or pass a `provider` dict.
+#
+# Publishers are referenced by NAME — the module resolves them to ids, so the
+# playbook stays readable and portable between tenants.
+#
+# Run with --check --diff first to preview what would change.
+- name: Publish an internal web app through NPA
+  hosts: localhost
+  gather_facts: false
+  vars:
+    app_name: intranet-wiki
+    app_hosts:
+      - wiki.corp.internal
+    app_publishers:
+      - dc1-publisher-01
+  tasks:
+    - name: Ensure the private app exists and is served by our publishers
+      mlowcher61.netskope.netskope_private_app:
+        name: "{{ app_name }}"
+        host: "{{ app_hosts }}"
+        protocols:
+          - type: tcp
+            port: "443"
+        publishers: "{{ app_publishers }}"
+        use_publisher_dns: true
+      register: app_result
+
+    - name: Show the private app definition
+      ansible.builtin.debug:
+        var: app_result.private_app
+
+    # Uncomment to unpublish the app entirely.
+    # - name: Remove a retired private app
+    #   mlowcher61.netskope.netskope_private_app:
+    #     name: old-intranet
+    #     state: absent

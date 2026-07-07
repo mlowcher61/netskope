@@ -1,0 +1,91 @@
+---
+- name: Verify required integration variables are set
+  ansible.builtin.assert:
+    that:
+      - netskope_tenant_url is defined
+      - netskope_api_token is defined
+    fail_msg: >-
+      Copy tests/integration/integration_config.yml.template to
+      integration_config.yml and fill in your tenant details.
+
+- name: Pick a unique app name for this run
+  ansible.builtin.set_fact:
+    test_app_name: "ansible-it-{{ 999999999 | random }}"
+
+- name: Integration tests for netskope_private_app
+  module_defaults:
+    mlowcher61.netskope.netskope_private_app:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_token: "{{ netskope_api_token }}"
+  block:
+    - name: Create the private app (check mode)
+      mlowcher61.netskope.netskope_private_app:
+        name: "{{ test_app_name }}"
+        host:
+          - "{{ test_app_name }}.example.internal"
+        protocols:
+          - type: tcp
+            port: "443"
+      check_mode: true
+      register: check_create
+
+    - name: Create the private app for real
+      mlowcher61.netskope.netskope_private_app:
+        name: "{{ test_app_name }}"
+        host:
+          - "{{ test_app_name }}.example.internal"
+        protocols:
+          - type: tcp
+            port: "443"
+      register: real_create
+
+    - name: Create the private app again (idempotency)
+      mlowcher61.netskope.netskope_private_app:
+        name: "{{ test_app_name }}"
+        host:
+          - "{{ test_app_name }}.example.internal"
+        protocols:
+          - type: tcp
+            port: "443"
+      register: repeat_create
+
+    - name: Add a second host (update)
+      mlowcher61.netskope.netskope_private_app:
+        name: "{{ test_app_name }}"
+        host:
+          - "{{ test_app_name }}.example.internal"
+          - "{{ test_app_name }}-alt.example.internal"
+        protocols:
+          - type: tcp
+            port: "443"
+      register: real_update
+
+    - name: Delete the private app
+      mlowcher61.netskope.netskope_private_app:
+        name: "{{ test_app_name }}"
+        state: absent
+      register: real_delete
+
+    - name: Delete the private app again (idempotency)
+      mlowcher61.netskope.netskope_private_app:
+        name: "{{ test_app_name }}"
+        state: absent
+      register: repeat_delete
+
+    - name: Assert the full lifecycle behaved
+      ansible.builtin.assert:
+        that:
+          - check_create is changed
+          - real_create is changed
+          - repeat_create is not changed
+          - real_update is changed
+          - real_delete is changed
+          - repeat_delete is not changed
+
+  always:
+    - name: Make sure the test app is gone
+      mlowcher61.netskope.netskope_private_app:
+        name: "{{ test_app_name }}"
+        state: absent
+      failed_when: false

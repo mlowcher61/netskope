@@ -1,0 +1,88 @@
+---
+- name: Verify required integration variables are set
+  ansible.builtin.assert:
+    that:
+      - netskope_tenant_url is defined
+      - netskope_api_token is defined
+    fail_msg: >-
+      Copy tests/integration/integration_config.yml.template to
+      integration_config.yml and fill in your tenant details.
+
+- name: Pick a unique publisher name for this run
+  ansible.builtin.set_fact:
+    test_publisher_name: "ansible-it-{{ 999999999 | random }}"
+
+- name: Integration tests for netskope_publisher
+  module_defaults:
+    mlowcher61.netskope.netskope_publisher:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_token: "{{ netskope_api_token }}"
+    mlowcher61.netskope.netskope_publisher_info:
+      provider:
+        tenant_url: "{{ netskope_tenant_url }}"
+        api_token: "{{ netskope_api_token }}"
+  block:
+    - name: Create the publisher (check mode)
+      mlowcher61.netskope.netskope_publisher:
+        name: "{{ test_publisher_name }}"
+      check_mode: true
+      register: check_create
+
+    - name: Verify check mode did not create the publisher
+      mlowcher61.netskope.netskope_publisher_info:
+        name: "{{ test_publisher_name }}"
+      register: after_check
+
+    - name: Assert check mode behaviour
+      ansible.builtin.assert:
+        that:
+          - check_create is changed
+          - after_check.publishers | length == 0
+
+    - name: Create the publisher for real
+      mlowcher61.netskope.netskope_publisher:
+        name: "{{ test_publisher_name }}"
+      register: real_create
+
+    - name: Create the publisher again (idempotency)
+      mlowcher61.netskope.netskope_publisher:
+        name: "{{ test_publisher_name }}"
+      register: repeat_create
+
+    - name: Generate a registration token (always reports changed)
+      mlowcher61.netskope.netskope_publisher:
+        name: "{{ test_publisher_name }}"
+        generate_token: true
+      register: token_run
+
+    - name: Delete the publisher
+      mlowcher61.netskope.netskope_publisher:
+        name: "{{ test_publisher_name }}"
+        state: absent
+      register: real_delete
+
+    - name: Delete the publisher again (idempotency)
+      mlowcher61.netskope.netskope_publisher:
+        name: "{{ test_publisher_name }}"
+        state: absent
+      register: repeat_delete
+
+    - name: Assert the full lifecycle behaved
+      ansible.builtin.assert:
+        that:
+          - real_create is changed
+          - real_create.publisher.publisher_name == test_publisher_name
+          - repeat_create is not changed
+          - token_run is changed
+          - token_run.token is string
+          - token_run.token | length > 0
+          - real_delete is changed
+          - repeat_delete is not changed
+
+  always:
+    - name: Make sure the test publisher is gone
+      mlowcher61.netskope.netskope_publisher:
+        name: "{{ test_publisher_name }}"
+        state: absent
+      failed_when: false
