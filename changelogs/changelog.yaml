@@ -1,41 +1,70 @@
 ancestor: null
 releases:
   0.1.0:
+    changes:
+      release_summary: Initial release of the mlowcher61.netskope collection for the
+        Netskope REST API v2. Ships read-only lookup modules, shared credential handling
+        (Ansible Automation Platform custom credential injection via environment variables,
+        or an explicit ``provider`` dict), an execution environment definition, and
+        AAP config-as-code.
+    modules:
+    - description: Retrieve Netskope alerts
+      name: netskope_alert_info
+      namespace: ''
+    - description: List Netskope Private Access publishers
+      name: netskope_publisher_info
+      namespace: ''
+    - description: List Netskope SCIM users or groups
+      name: netskope_scim_info
+      namespace: ''
+    - description: Retrieve Netskope URL lists
+      name: netskope_urllist_info
+      namespace: ''
     release_date: '2026-07-01'
-    changes:
-      release_summary: >-
-        Initial release of the mlowcher61.netskope collection for the Netskope
-        REST API v2. Ships read-only lookup modules, shared credential handling
-        (Ansible Automation Platform custom credential injection via
-        environment variables, or an explicit ``provider`` dict), an execution
-        environment definition, and AAP config-as-code.
-    modules:
-      - name: netskope_alert_info
-        description: Retrieve Netskope alerts
-        namespace: ''
-      - name: netskope_publisher_info
-        description: List Netskope Private Access publishers
-        namespace: ''
-      - name: netskope_scim_info
-        description: List Netskope SCIM users or groups
-        namespace: ''
-      - name: netskope_urllist_info
-        description: Retrieve Netskope URL lists
-        namespace: ''
   0.2.0:
-    release_date: '2026-07-02'
     changes:
-      release_summary: >-
-        First state-changing modules. Both support check mode, ``--diff``,
-        idempotent re-runs, and a uniform ``state``/``purge`` model, and ship
-        with example playbooks under ``examples/``.
       minor_changes:
-        - module_utils - added a shared ``find_record`` helper used by
-          state-changing modules to resolve existing resources by attribute.
+      - module_utils - added a shared ``find_record`` helper used by state-changing
+        modules to resolve existing resources by attribute.
+      release_summary: First state-changing modules. Both support check mode, ``--diff``,
+        idempotent re-runs, and a uniform ``state``/``purge`` model, and ship with
+        example playbooks under ``examples/``.
     modules:
-      - name: netskope_scim_group
-        description: Manage a Netskope SCIM group and its membership
-        namespace: ''
-      - name: netskope_urllist
-        description: Manage entries on an existing Netskope URL list
-        namespace: ''
+    - description: Manage a Netskope SCIM group and its membership
+      name: netskope_scim_group
+      namespace: ''
+    - description: Manage entries on an existing Netskope URL list
+      name: netskope_urllist
+      namespace: ''
+    release_date: '2026-07-02'
+  0.3.0:
+    changes:
+      minor_changes:
+      - config-as-code - the Netskope API Token custom credential type gained an optional
+        REST API v1 token field, injected as ``NETSKOPE_API_V1_TOKEN``.
+      - module_utils - added ``NetskopeV1Client`` and v1 credential handling (``api_v1_token``
+        / ``NETSKOPE_API_V1_TOKEN``) so modules can call the few legacy REST API v1
+        endpoints that have no v2 equivalent, such as quarantine management. v1 URLs
+        are redacted in error output because the v1 token travels as a query parameter.
+      release_summary: 'Tier 3 release: NPA infrastructure management (``netskope_publisher``,
+        ``netskope_private_app``) and quarantine management (``netskope_quarantine``,
+        ``netskope_quarantine_info``). The quarantine modules use the legacy REST
+        API v1 because quarantine management was never ported to REST API v2; they
+        need the separate v1 token.'
+    fragments:
+    - netskope_quarantine.yml
+    - release_summary.yml
+    modules:
+    - description: Manage Netskope Private Access private applications.
+      name: netskope_private_app
+      namespace: ''
+    - description: Manage Netskope Private Access publishers.
+      name: netskope_publisher
+      namespace: ''
+    - description: Release or delete a file held in Netskope quarantine.
+      name: netskope_quarantine
+      namespace: ''
+    - description: List files held in Netskope quarantine.
+      name: netskope_quarantine_info
+      namespace: ''
+    release_date: '2026-07-07'

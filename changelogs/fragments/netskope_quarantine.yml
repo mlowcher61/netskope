@@ -1,9 +1,0 @@
----
-minor_changes:
-  - module_utils - added ``NetskopeV1Client`` and v1 credential handling
-    (``api_v1_token`` / ``NETSKOPE_API_V1_TOKEN``) so modules can call the few
-    legacy REST API v1 endpoints that have no v2 equivalent, such as
-    quarantine management. v1 URLs are redacted in error output because the v1
-    token travels as a query parameter.
-  - config-as-code - the Netskope API Token custom credential type gained an
-    optional REST API v1 token field, injected as ``NETSKOPE_API_V1_TOKEN``.

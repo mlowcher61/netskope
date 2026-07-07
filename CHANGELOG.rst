@@ -4,6 +4,28 @@ mlowcher61.netskope Release Notes
 
 .. contents:: Topics
 
+v0.3.0
+======
+
+Release Summary
+---------------
+
+Tier 3 release: NPA infrastructure management (``netskope_publisher``, ``netskope_private_app``) and quarantine management (``netskope_quarantine``, ``netskope_quarantine_info``). The quarantine modules use the legacy REST API v1 because quarantine management was never ported to REST API v2; they need the separate v1 token.
+
+Minor Changes
+-------------
+
+- config-as-code - the Netskope API Token custom credential type gained an optional REST API v1 token field, injected as ``NETSKOPE_API_V1_TOKEN``.
+- module_utils - added ``NetskopeV1Client`` and v1 credential handling (``api_v1_token`` / ``NETSKOPE_API_V1_TOKEN``) so modules can call the few legacy REST API v1 endpoints that have no v2 equivalent, such as quarantine management. v1 URLs are redacted in error output because the v1 token travels as a query parameter.
+
+New Modules
+-----------
+
+- mlowcher61.netskope.netskope_private_app - Manage Netskope Private Access private applications.
+- mlowcher61.netskope.netskope_publisher - Manage Netskope Private Access publishers.
+- mlowcher61.netskope.netskope_quarantine - Release or delete a file held in Netskope quarantine.
+- mlowcher61.netskope.netskope_quarantine_info - List files held in Netskope quarantine.
+
 v0.2.0
 ======
 

@@ -1,0 +1,69 @@
+objects:
+  role: {}
+plugins:
+  become: {}
+  cache: {}
+  callback: {}
+  cliconf: {}
+  connection: {}
+  filter: {}
+  httpapi: {}
+  inventory: {}
+  lookup: {}
+  module:
+    netskope_alert_info:
+      description: Retrieve Netskope alerts
+      name: netskope_alert_info
+      namespace: ''
+      version_added: 0.1.0
+    netskope_private_app:
+      description: Manage Netskope Private Access private applications
+      name: netskope_private_app
+      namespace: ''
+      version_added: 0.3.0
+    netskope_publisher:
+      description: Manage Netskope Private Access publishers
+      name: netskope_publisher
+      namespace: ''
+      version_added: 0.3.0
+    netskope_publisher_info:
+      description: List Netskope Private Access publishers
+      name: netskope_publisher_info
+      namespace: ''
+      version_added: 0.1.0
+    netskope_quarantine:
+      description: Release or delete a file held in Netskope quarantine
+      name: netskope_quarantine
+      namespace: ''
+      version_added: 0.3.0
+    netskope_quarantine_info:
+      description: List files held in Netskope quarantine
+      name: netskope_quarantine_info
+      namespace: ''
+      version_added: 0.3.0
+    netskope_scim_group:
+      description: Manage a Netskope SCIM group and its membership
+      name: netskope_scim_group
+      namespace: ''
+      version_added: 0.2.0
+    netskope_scim_info:
+      description: List Netskope SCIM users or groups
+      name: netskope_scim_info
+      namespace: ''
+      version_added: 0.1.0
+    netskope_urllist:
+      description: Manage entries on an existing Netskope URL list
+      name: netskope_urllist
+      namespace: ''
+      version_added: 0.2.0
+    netskope_urllist_info:
+      description: Retrieve Netskope URL lists
+      name: netskope_urllist_info
+      namespace: ''
+      version_added: 0.1.0
+  netconf: {}
+  shell: {}
+  strategy: {}
+  test: {}
+  vars: {}
+version: 0.3.0
