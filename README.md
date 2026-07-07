@@ -23,12 +23,19 @@ groups.
 ## Installation
 
 ```bash
-# From this git repository
-ansible-galaxy collection install git+https://github.com/mlowcher61/netskope.git
+# From Ansible Galaxy (recommended)
+ansible-galaxy collection install mlowcher61.netskope
 
-# ...or build and install locally
-ansible-galaxy collection build
-ansible-galaxy collection install mlowcher61-netskope-0.3.0.tar.gz
+# ...or straight from this git repository (e.g. to try unreleased changes)
+ansible-galaxy collection install git+https://github.com/mlowcher61/netskope.git
+```
+
+Or pin it in a `requirements.yml` (this is what the execution environment uses):
+
+```yaml
+collections:
+  - name: mlowcher61.netskope
+    version: ">=0.3.0"
 ```
 
 ## Authentication
