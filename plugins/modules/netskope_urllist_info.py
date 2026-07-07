@@ -102,22 +102,12 @@ def filter_records(records, name, record_id):
 def filter_fields(records, fields):
     """Project each URL list down to the requested top-level fields.
 
-    TODO (learning-mode contribution): implement this.
-
-    Given ``records`` (a list of URL-list dicts) and ``fields`` (a list of
-    top-level key names, or None), return a new list where each record contains
-    only the requested keys. Decide the semantics that make sense for an
-    operator, for example:
-      - When ``fields`` is None or empty, return the records unchanged.
-      - Should a requested field that is missing from a record be skipped, or
-        included as null?
-      - Should identifying fields like ``id``/``name`` always be preserved?
-
-    The current placeholder is a no-op so the module runs; replace it.
+    A requested field missing from a record is skipped rather than padded
+    with null, so the output only contains data the API actually returned.
     """
     if not fields:
         return records
-    return records  # <-- replace with your projection logic
+    return [{key: record[key] for key in fields if key in record} for record in records]
 
 
 def run_module():

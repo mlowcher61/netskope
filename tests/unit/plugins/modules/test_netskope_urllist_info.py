@@ -78,10 +78,19 @@ def test_filter_records_no_filter_returns_all():
     assert mod.filter_records(SAMPLE, None, None) == SAMPLE
 
 
-@pytest.mark.xfail(reason="filter_fields is a pending learning-mode contribution", strict=False)
 def test_filter_fields_projects_selected_keys():
     result = mod.filter_fields(SAMPLE, ["id", "name"])
     assert result == [{"id": 1, "name": "a"}, {"id": 2, "name": "b"}]
+
+
+def test_filter_fields_none_returns_records_unchanged():
+    assert mod.filter_fields(SAMPLE, None) == SAMPLE
+    assert mod.filter_fields(SAMPLE, []) == SAMPLE
+
+
+def test_filter_fields_skips_missing_keys():
+    result = mod.filter_fields(SAMPLE, ["name", "nonexistent"])
+    assert result == [{"name": "a"}, {"name": "b"}]
 
 
 # --- full module invocation ------------------------------------------------
