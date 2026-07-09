@@ -1,5 +1,0 @@
----
-bugfixes:
-  - netskope_urllist_info - the ``fields`` option now projects each URL list
-    down to the requested top-level keys; previously it was accepted but had
-    no effect.

@@ -16,7 +16,7 @@ description:
     C(policy/urllist) endpoints.
   - The Netskope API cannot create or delete URL lists, so the target list must
     already exist; this module only manages its entries. Use
-    M(mlowcher61.netskope.netskope_urllist_info) to discover lists.
+    C(mlowcher61.netskope.netskope_urllist_info) to discover lists.
 author:
   - mlowcher61 (@mlowcher61)
 extends_documentation_fragment:

@@ -22,7 +22,7 @@ description:
     reports ok (unchanged). Because both actions remove the file from
     quarantine, the module cannot verify that a previously taken action was
     the same one requested now.
-  - Use M(mlowcher61.netskope.netskope_quarantine_info) to discover file ids.
+  - Use C(mlowcher61.netskope.netskope_quarantine_info) to discover file ids.
 author:
   - mlowcher61 (@mlowcher61)
 extends_documentation_fragment:
@@ -31,7 +31,7 @@ options:
   file_id:
     description:
       - The id of the quarantined file to act on, as reported by
-        M(mlowcher61.netskope.netskope_quarantine_info) or a quarantine alert.
+        C(mlowcher61.netskope.netskope_quarantine_info) or a quarantine alert.
     type: str
     required: true
   quarantine_profile_id:

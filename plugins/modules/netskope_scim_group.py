@@ -15,7 +15,7 @@ description:
   - Create, delete, and manage the membership of a SCIM 2.0 group via the
     C(scim/Groups) endpoints.
   - Members are given as SCIM user ids (the C(value) of a member entry). Use
-    M(mlowcher61.netskope.netskope_scim_info) to discover user ids.
+    C(mlowcher61.netskope.netskope_scim_info) to discover user ids.
 author:
   - mlowcher61 (@mlowcher61)
 extends_documentation_fragment:

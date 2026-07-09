@@ -4,6 +4,19 @@ mlowcher61.netskope Release Notes
 
 .. contents:: Topics
 
+v0.3.1
+======
+
+Release Summary
+---------------
+
+Documentation-only release that works around a galaxy.ansible.com rendering bug affecting five module doc pages. No functional changes.
+
+Bugfixes
+--------
+
+- module documentation - replaced ``M(...)`` module cross-references with ``C(...)`` so module docs render on galaxy.ansible.com, which currently fails with "Documentation Syntax Error" on any doc containing a module reference (https://github.com/ansible/ansible-hub-ui/issues/5586). The documentation itself was always valid; this only works around the Galaxy UI bug.
+
 v0.3.0
 ======
 
@@ -17,6 +30,11 @@ Minor Changes
 
 - config-as-code - the Netskope API Token custom credential type gained an optional REST API v1 token field, injected as ``NETSKOPE_API_V1_TOKEN``.
 - module_utils - added ``NetskopeV1Client`` and v1 credential handling (``api_v1_token`` / ``NETSKOPE_API_V1_TOKEN``) so modules can call the few legacy REST API v1 endpoints that have no v2 equivalent, such as quarantine management. v1 URLs are redacted in error output because the v1 token travels as a query parameter.
+
+Bugfixes
+--------
+
+- netskope_urllist_info - the ``fields`` option now projects each URL list down to the requested top-level keys; previously it was accepted but had no effect.
 
 New Modules
 -----------

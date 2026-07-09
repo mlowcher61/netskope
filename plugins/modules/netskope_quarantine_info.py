@@ -17,7 +17,7 @@ description:
   - Quarantine management has no REST API v2 equivalent, so this module
     authenticates with the v1 token (see O(api_v1_token)).
   - This is a read-only module and never changes tenant state.
-  - Use M(mlowcher61.netskope.netskope_quarantine) to release (allow) or
+  - Use C(mlowcher61.netskope.netskope_quarantine) to release (allow) or
     delete (block) a quarantined file.
 author:
   - mlowcher61 (@mlowcher61)

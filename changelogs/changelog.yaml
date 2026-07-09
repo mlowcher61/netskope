@@ -39,6 +39,9 @@ releases:
     release_date: '2026-07-02'
   0.3.0:
     changes:
+      bugfixes:
+      - netskope_urllist_info - the ``fields`` option now projects each URL list down
+        to the requested top-level keys; previously it was accepted but had no effect.
       minor_changes:
       - config-as-code - the Netskope API Token custom credential type gained an optional
         REST API v1 token field, injected as ``NETSKOPE_API_V1_TOKEN``.
@@ -68,3 +71,16 @@ releases:
       name: netskope_quarantine_info
       namespace: ''
     release_date: '2026-07-07'
+  0.3.1:
+    changes:
+      bugfixes:
+      - module documentation - replaced ``M(...)`` module cross-references with ``C(...)``
+        so module docs render on galaxy.ansible.com, which currently fails with "Documentation
+        Syntax Error" on any doc containing a module reference (https://github.com/ansible/ansible-hub-ui/issues/5586).
+        The documentation itself was always valid; this only works around the Galaxy
+        UI bug.
+      release_summary: Documentation-only release that works around a galaxy.ansible.com
+        rendering bug affecting five module doc pages. No functional changes.
+    fragments:
+    - galaxy_doc_rendering.yml
+    release_date: '2026-07-09'

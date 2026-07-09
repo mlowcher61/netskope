@@ -16,7 +16,7 @@ description:
     C(/api/v2/infrastructure/publishers) endpoints.
   - Optionally generates a registration token for installing the publisher on a
     host with O(generate_token).
-  - Use M(mlowcher61.netskope.netskope_publisher_info) to inspect publishers
+  - Use C(mlowcher61.netskope.netskope_publisher_info) to inspect publishers
     without changing anything.
 author:
   - mlowcher61 (@mlowcher61)
